@@ -28,8 +28,10 @@
 #include <setjmp.h>
 #include <assert.h>
 #include <errno.h>
-#include <fcntl.h>
-
+#include <fcntl.h>        /* O_NONBLOCK, O_CREAT, O_WRONLY, etc. */
+#ifndef O_NONBLOCK
+#define O_NONBLOCK 0
+#endif
 // this is needed for FreeBSD and Windows
 #include <sys/time.h>
 #ifndef FD_SET
@@ -42,8 +44,6 @@
 #endif
 
 #endif
-
-#include <fcntl.h>        /* O_NONBLOCK, O_CREAT, O_WRONLY, etc. */
 
 #include "common.h"
 // #define SHOWDATA
@@ -409,7 +409,7 @@ static void process_packets
                     "%08x: sequence hdr: %dx%d, a/f:%02x, bitrate=%d\n",
                     disppos,
                     buf[0] << 4 | buf[1] >> 4,
-                    buf[1] << 8 & 0xf00 | buf[2],
+                    (buf[1] << 8 & 0xf00) | buf[2],
                     buf[3],
                     buf[4] << 10 | buf[5] << 2 | buf[6] >> 6
                   );
@@ -567,9 +567,9 @@ static void process_packets
                 ||
                     hdrid == 0x100 + MPID_PRIVATE2
                 ||
-                    hdrid >= 0x100 + MPID_AUDIO_FIRST && hdrid <= 0x100 + MPID_AUDIO_LAST
+                    (hdrid >= 0x100 + MPID_AUDIO_FIRST) && (hdrid <= 0x100 + MPID_AUDIO_LAST)
                 ||
-                    hdrid >= 0x100 + MPID_VIDEO_FIRST && hdrid <= 0x100 + MPID_VIDEO_LAST
+                    (hdrid >= 0x100 + MPID_VIDEO_FIRST) && (hdrid <= 0x100 + MPID_VIDEO_LAST)
                 )
           )
           {
