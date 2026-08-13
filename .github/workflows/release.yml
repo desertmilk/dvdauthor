@@ -262,6 +262,7 @@ jobs:
         run: |
           set -eux
           ./bootstrap
+          export LIBS="-lws2_32"
           WANT_AUTOCONF=2.72 WANT_AUTOMAKE=1.16 autoreconf -fiv
           ./configure --prefix="$PWD/_install"
           CPU_COUNT="$(nproc 2>/dev/null || echo 2)"
