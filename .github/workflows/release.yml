@@ -375,10 +375,16 @@ jobs:
 
           ## 🔐 Verify the download
 
-          To confirm the archive integrity:
+          To confirm the integrity of your specific download without getting errors for the files you skipped, run:
 
+          **Linux:**
           ```bash
-          sha256sum -c checksums.txt
+          sha256sum --ignore-missing -c checksums.txt
+          ```
+
+          **macOS:**
+          ```bash
+          grep "macos" checksums.txt | shasum -a 256 -c
           ```
 
           ## 📝 Notes
