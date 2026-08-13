@@ -25,3 +25,5 @@ src/dvdvmy.c
 src/dvdvmy.h
 src/stamp-h1
 src/*.o
+/*.m4
+/m4/*.m4
