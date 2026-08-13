@@ -231,10 +231,6 @@ jobs:
           install: >-
             base-devel
             mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-autotools
-            mingw-w64-x86_64-gettext
-            mingw-w64-x86_64-flex
-            mingw-w64-x86_64-bison
             mingw-w64-x86_64-pkgconf
             mingw-w64-x86_64-libdvdread
             mingw-w64-x86_64-libpng
