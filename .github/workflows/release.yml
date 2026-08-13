@@ -202,7 +202,7 @@ jobs:
         run: |
           set -eux
           cd release
-          sha256sum ./* > checksums.txt
+          shasum -a 256 ./* > checksums.txt
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
