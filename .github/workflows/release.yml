@@ -276,10 +276,11 @@ jobs:
           # Bundle MinGW runtime DLLs required by the installed executables.
           mkdir -p _install/bin
           for exe in _install/bin/*.exe; do
-            # Find all MSYS2 DLL dependencies and copy them to the install bin folder
-            # We use -i for case-insensitivity and $MSYSTEM_PREFIX to support MINGW64, UCRT64, etc.
-            ldd "$exe" | grep -i "${MSYSTEM_PREFIX}/bin/.*\.dll" | awk '{print $3}' | while read -r dll; do
-              cp -u "$dll" _install/bin/
+            # Normalize backslashes to forward slashes and match any MSYS2 toolchain bin directory
+            ldd "$exe" | tr '\\' '/' | (grep -iE '/(mingw64|ucrt64|clang64|msys64)/bin/' || true) | awk '{print $3}' | while read -r dll; do
+              if [ -f "$dll" ]; then
+                cp -u "$dll" _install/bin/
+              fi
             done
           done
 
