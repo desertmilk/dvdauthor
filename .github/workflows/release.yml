@@ -262,7 +262,7 @@ jobs:
         run: |
           set -eux
           ./bootstrap
-          
+
           
           WANT_AUTOCONF=2.72 WANT_AUTOMAKE=1.16 autoreconf -fiv
           ./configure --prefix="$PWD/_install" LIBS="-lws2_32"
@@ -274,11 +274,11 @@ jobs:
           make install-strip -C src
           # Bundle MinGW runtime DLLs required by the installed executables.
           mkdir -p _install/bin
-          for dll in \
-            /mingw64/bin/libgcc_s_seh-1.dll \
-            /mingw64/bin/libstdc++-6.dll \
-            /mingw64/bin/libwinpthread-1.dll; do
-            cp "$dll" _install/bin/
+          for exe in _install/bin/*.exe; do
+            # Find all mingw64 DLL dependencies and copy them to the install bin folder
+            ldd "$exe" | grep "/mingw64/bin/.*\.dll" | awk '{print $3}' | while read -r dll; do
+              cp -u "$dll" _install/bin/
+            done
           done
 
           mkdir -p release
