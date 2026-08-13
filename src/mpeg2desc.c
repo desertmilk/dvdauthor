@@ -32,9 +32,13 @@
 
 // this is needed for FreeBSD and Windows
 #include <sys/time.h>
+#ifndef FD_SET
+#include <sys/select.h>   /* fd_set, FD_SET, FD_CLR, FD_ZERO, FD_ISSET, select() */
+#endif
+
+#include <fcntl.h>        /* O_NONBLOCK, O_CREAT, O_WRONLY, etc. */
 
 #include "common.h"
-
 // #define SHOWDATA
 
 static unsigned int
