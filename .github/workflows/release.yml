@@ -220,6 +220,10 @@ jobs:
             asset: dvdauthor-windows-x86_64.zip
 
     steps:
+      - name: Disable CRLF conversion for checkout
+        shell: bash
+        run: git config --global core.autocrlf false
+
       - name: Check out source
         uses: actions/checkout@v4
 

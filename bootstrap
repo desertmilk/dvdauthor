@@ -35,3 +35,15 @@ if [ ! -f autotools/config.rpath ]; then
 fi
 autoreconf -fi
 
+# Autotools generated scripts must use LF line endings. On Windows checkouts, Git may convert these files to CRLF and bash then chokes on command substitutions such as `as_ac_Header=...` in configure.
+find . -type f \( \
+    -name configure -o \
+    -name config.guess -o \
+    -name config.sub -o \
+    -name depcomp -o \
+    -name install-sh -o \
+    -name ltmain.sh -o \
+    -name 'Makefile.in' -o \
+    -name '*.m4' \
+\) -exec sh -c 'for f do tr -d "\r" < "$f" > "$f.tmp" && mv "$f.tmp" "$f"; done' sh {} +
+
