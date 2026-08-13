@@ -336,37 +336,44 @@ jobs:
             cp "$file" release-files/
           done
 
+      - name: Create release checksums
+        shell: bash
+        run: |
+          set -eux
+          cd release-files
+          sha256sum ./* > checksums.txt
+
       - name: Create release notes
         shell: bash
         run: |
           cat > release-notes.md <<'EOF'
-          ## Downloads
+          ## 📦 Downloads
 
-          - Linux x86_64
-          - Linux arm64
-          - ~macOS x86_64~ (disabled)
-          - macOS arm64
-          - Windows x86_64
+          | Platform | Architecture | Archive |
+          | :--- | :--- | :--- |
+          | **Linux** | x86_64 | [dvdauthor-linux-x86_64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/dvdauthor-linux-x86_64.tar.gz) |
+          | **Linux** | arm64 | [dvdauthor-linux-arm64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/dvdauthor-linux-arm64.tar.gz) |
+          | **macOS** | arm64 | [dvdauthor-macos-arm64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/dvdauthor-macos-arm64.tar.gz) |
+          | **Windows** | x86_64 | [dvdauthor-windows-x86_64.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/dvdauthor-windows-x86_64.zip) |
 
-          ## Included binaries
+          **Checksums:** [checksums.txt](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/checksums.txt)
+          
+          *(Note: macOS x86_64 builds are currently disabled).*
 
-          - dvdauthor-linux-x86_64.tar.gz
-          - dvdauthor-linux-arm64.tar.gz
-          - dvdauthor-macos-arm64.tar.gz
-          - dvdauthor-windows-x86_64.zip
-          - checksums.txt
-
-          ## Install
+          ## 🚀 Installation
 
           Extract the archive that matches your platform and install it into your preferred prefix (such as `/usr/local`) or binary path.
 
-          For example, on MacOS:
+          **macOS / Linux Example:**
           ```bash
           tar -xzf dvdauthor-macos-arm64.tar.gz
           sudo cp -a . /usr/local/
           ```
+          
+          **Windows:**
+          Extract `dvdauthor-windows-x86_64.zip`, place the extracted folders in your preferred location, and add the resulting `bin` directory to your system `Path`.
 
-          ## Verify the download
+          ## 🔐 Verify the download
 
           To confirm the archive integrity:
 
@@ -374,10 +381,10 @@ jobs:
           sha256sum -c checksums.txt
           ```
 
-          ## Notes
+          ## 📝 Notes
 
-          This release contains native builds for the supported architectures above.
-          Documentation is included in all builds.
+          - This release contains native builds for the supported architectures above.
+          - Shared documentation is included in all builds.
           EOF
 
       - name: Publish GitHub release
