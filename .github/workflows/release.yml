@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-linux:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -25,24 +25,12 @@ jobs:
             name: linux-arm64
             arch: arm64
             asset: dvdauthor-linux-arm64.tar.gz
-          # GitHub-hosted Intel macOS runners are not consistently available in all
-          # org/account configurations, so keep this target disabled until it is
-          # confirmed to be available for the repository.
-          # - os: macos-13
-          #   name: macos-x86_64
-          #   arch: x86_64
-          #   asset: dvdauthor-macos-x86_64.tar.gz
-          - os: macos-14
-            name: macos-arm64
-            arch: arm64
-            asset: dvdauthor-macos-arm64.tar.gz
 
     steps:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
+      - name: Install dependencies
         shell: bash
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -50,67 +38,25 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends build-essential autoconf automake libtool pkg-config gettext m4 flex bison docbook-utils libdvdread-dev libpng-dev libxml2-dev libfontconfig1-dev libfreetype6-dev libfribidi-dev
 
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          brew update
-          brew untap aws/tap || true
-          brew install autoconf automake libtool pkg-config gettext m4 flex bison libdvdread libpng libxml2 fontconfig freetype fribidi
-
       - name: Bootstrap and build
         shell: bash
         run: |
           set -eux
-          if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            HOMEBREW_PREFIX="$(brew --prefix)"
-            export PATH="$HOMEBREW_PREFIX/opt/bison/bin:$HOMEBREW_PREFIX/opt/flex/bin:$PATH"
-            export CPPFLAGS="-I$HOMEBREW_PREFIX/include -I$HOMEBREW_PREFIX/opt/libxml2/include -I$HOMEBREW_PREFIX/opt/libdvdread/include -I$HOMEBREW_PREFIX/opt/libpng/include -I$HOMEBREW_PREFIX/opt/fontconfig/include -I$HOMEBREW_PREFIX/opt/freetype/include -I$HOMEBREW_PREFIX/opt/fribidi/include ${CPPFLAGS:-}"
-            export LDFLAGS="-L$HOMEBREW_PREFIX/lib -L$HOMEBREW_PREFIX/opt/libxml2/lib -L$HOMEBREW_PREFIX/opt/libdvdread/lib -L$HOMEBREW_PREFIX/opt/libpng/lib -L$HOMEBREW_PREFIX/opt/fontconfig/lib -L$HOMEBREW_PREFIX/opt/freetype/lib -L$HOMEBREW_PREFIX/opt/fribidi/lib ${LDFLAGS:-}"
-            export PKG_CONFIG_PATH="$HOMEBREW_PREFIX/lib/pkgconfig:$HOMEBREW_PREFIX/opt/libxml2/lib/pkgconfig:$HOMEBREW_PREFIX/opt/libdvdread/lib/pkgconfig:$HOMEBREW_PREFIX/opt/libpng/lib/pkgconfig:$HOMEBREW_PREFIX/opt/fontconfig/lib/pkgconfig:$HOMEBREW_PREFIX/opt/freetype/lib/pkgconfig:$HOMEBREW_PREFIX/opt/fribidi/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
-            export CPATH="$HOMEBREW_PREFIX/include:${CPATH:-}"
-            export LIBRARY_PATH="$HOMEBREW_PREFIX/lib:${LIBRARY_PATH:-}"
-          fi
           ./bootstrap
           ./configure --prefix="$PWD/_install"
           CPU_COUNT="$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
-          if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            # macOS: skip doc build (SGML DocBook toolchain unavailable via Homebrew)
-            make -j"$CPU_COUNT" -C src
-            make install-strip -C src
-          else
-            # Linux: build everything including docs
-            make -j"$CPU_COUNT"
-            make install-strip
-          fi
+          make -j"$CPU_COUNT"
+          make install-strip
 
           mkdir -p release
           tar -C "$PWD/_install" -czf "release/${{ matrix.asset }}" .
 
-      - name: Upload shared docs (Linux)
-        if: runner.os == 'Linux'
+      - name: Upload shared documentation
         uses: actions/upload-artifact@v4
         with:
           name: shared-docs
           path: _install/share
           retention-days: 1
-
-      - name: Extract shared docs (macOS)
-        if: runner.os == 'macOS'
-        uses: actions/download-artifact@v4
-        with:
-          name: shared-docs
-          path: shared-docs-tmp
-
-      - name: Install shared docs to release (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          set -eux
-          if [[ -d shared-docs-tmp/share ]]; then
-            cp -r shared-docs-tmp/share "$PWD/_install/"
-          fi
-
 
       - name: Smoke test installed binaries
         shell: bash
@@ -143,26 +89,150 @@ jobs:
           name: ${{ matrix.name }}-artifacts
           path: release/*
 
-      - name: Publish GitHub release
-        if: startsWith(github.ref, 'refs/tags/')
+  build-macos:
+    name: ${{ matrix.name }}
+    needs: build-linux
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # GitHub-hosted Intel macOS runners are not consistently available in all
+          # org/account configurations, so keep this target disabled until it is
+          # confirmed to be available for the repository.
+          # - os: macos-13
+          #   name: macos-x86_64
+          #   arch: x86_64
+          #   asset: dvdauthor-macos-x86_64.tar.gz
+          - os: macos-14
+            name: macos-arm64
+            arch: arm64
+            asset: dvdauthor-macos-arm64.tar.gz
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
+        run: |
+          brew update
+          brew untap aws/tap || true
+          brew install autoconf automake libtool pkg-config gettext m4 flex bison libdvdread libpng libxml2 fontconfig freetype fribidi
+
+      - name: Bootstrap and build
+        shell: bash
         run: |
           set -eux
+          HOMEBREW_PREFIX="$(brew --prefix)"
+          export PATH="$HOMEBREW_PREFIX/opt/bison/bin:$HOMEBREW_PREFIX/opt/flex/bin:$PATH"
+          export CPPFLAGS="-I$HOMEBREW_PREFIX/include -I$HOMEBREW_PREFIX/opt/libxml2/include -I$HOMEBREW_PREFIX/opt/libdvdread/include -I$HOMEBREW_PREFIX/opt/libpng/include -I$HOMEBREW_PREFIX/opt/fontconfig/include -I$HOMEBREW_PREFIX/opt/freetype/include -I$HOMEBREW_PREFIX/opt/fribidi/include ${CPPFLAGS:-}"
+          export LDFLAGS="-L$HOMEBREW_PREFIX/lib -L$HOMEBREW_PREFIX/opt/libxml2/lib -L$HOMEBREW_PREFIX/opt/libdvdread/lib -L$HOMEBREW_PREFIX/opt/libpng/lib -L$HOMEBREW_PREFIX/opt/fontconfig/lib -L$HOMEBREW_PREFIX/opt/freetype/lib -L$HOMEBREW_PREFIX/opt/fribidi/lib ${LDFLAGS:-}"
+          export PKG_CONFIG_PATH="$HOMEBREW_PREFIX/lib/pkgconfig:$HOMEBREW_PREFIX/opt/libxml2/lib/pkgconfig:$HOMEBREW_PREFIX/opt/libdvdread/lib/pkgconfig:$HOMEBREW_PREFIX/opt/libpng/lib/pkgconfig:$HOMEBREW_PREFIX/opt/fontconfig/lib/pkgconfig:$HOMEBREW_PREFIX/opt/freetype/lib/pkgconfig:$HOMEBREW_PREFIX/opt/fribidi/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+          export CPATH="$HOMEBREW_PREFIX/include:${CPATH:-}"
+          export LIBRARY_PATH="$HOMEBREW_PREFIX/lib:${LIBRARY_PATH:-}"
+
+          ./bootstrap
+          ./configure --prefix="$PWD/_install"
+          CPU_COUNT="$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)"
+          # macOS: skip doc build (SGML DocBook toolchain unavailable via Homebrew)
+          # Documentation will be added from Linux build below
+          make -j"$CPU_COUNT" -C src
+          make install-strip -C src
+
+          mkdir -p release
+          tar -C "$PWD/_install" -czf "release/${{ matrix.asset }}" .
+
+      - name: Download shared documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: shared-docs
+          path: shared-docs-tmp
+
+      - name: Add shared documentation to release
+        shell: bash
+        run: |
+          set -eux
+          # Extract the tarball to add docs
+          cd release
+          tar -xzf "${{ matrix.asset }}"
+          # Copy docs from Linux build
+          cp -r ../shared-docs-tmp/. .
+          # Repackage with docs included
+          rm "${{ matrix.asset }}"
+          tar -czf "${{ matrix.asset }}" .
+          cd ..
+
+      - name: Rename artifact for architecture
+        shell: bash
+        run: |
+          set -eux
+          mv -f "release/${{ matrix.asset }}" "release/dvdauthor-${{ matrix.name }}.tar.gz"
+
+      - name: Smoke test installed binaries
+        shell: bash
+        run: |
+          set -eux
+          # Extract tarball temporarily to verify contents
+          mkdir -p _test_install
+          tar -C _test_install -xzf "release/dvdauthor-${{ matrix.name }}.tar.gz"
+          test -x "_test_install/bin/dvdauthor"
+          "_test_install/bin/dvdauthor" --help >/dev/null
+          if [[ -x "_test_install/bin/dvdunauthor" ]]; then
+            "_test_install/bin/dvdunauthor" --help >/dev/null
+          fi
+          # Verify docs were included
+          test -d "_test_install/share/man" || { echo "Documentation missing!"; exit 1; }
+
+      - name: Create release checksums
+        shell: bash
+        run: |
+          set -eux
+          cd release
+          sha256sum ./* > checksums.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-artifacts
+          path: release/*
+
+  publish:
+    name: Publish GitHub Release
+    needs: [build-linux, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: Organize artifacts for release
+        shell: bash
+        run: |
+          set -eux
+          mkdir -p release-files
+          find all-artifacts -type f -name "*.tar.gz" -o -name "*.txt" | while read file; do
+            cp "$file" release-files/
+          done
+
+      - name: Create release notes
+        shell: bash
+        run: |
           cat > release-notes.md <<'EOF'
           ## Downloads
 
           - Linux x86_64
           - Linux arm64
-          - macOS x86_64
+          - macOS x86_64 (disabled - inconsistently available)
           - macOS arm64
 
           ## Included binaries
 
           - dvdauthor-linux-x86_64.tar.gz
           - dvdauthor-linux-arm64.tar.gz
-          - dvdauthor-macos-x86_64.tar.gz
           - dvdauthor-macos-arm64.tar.gz
           - checksums.txt
 
@@ -172,7 +242,7 @@ jobs:
 
           ```bash
           tar -xzf dvdauthor-macos-arm64.tar.gz
-          sudo cp -a _install/. /usr/local/
+          sudo cp -a . /usr/local/
           ```
 
           On Linux, use the Linux archive with the matching architecture, then repeat the same pattern with your preferred install prefix.
@@ -188,7 +258,14 @@ jobs:
           ## Notes
 
           This release contains native builds for the supported architectures above.
-          Choose the archive that matches your platform and check the checksum before installing.
+          Documentation is included in all builds.
+          Choose the archive that matches your platform and verify the checksum before installing.
           EOF
 
-          gh release create "${GITHUB_REF_NAME}" --verify-tag --notes-file release-notes.md release/*
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eux
+          gh release create "${GITHUB_REF_NAME}" --verify-tag --notes-file release-notes.md release-files/*
