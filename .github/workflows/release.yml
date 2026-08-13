@@ -99,9 +99,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # GitHub-hosted Intel macOS runners are not consistently available in all
-          # org/account configurations, so keep this target disabled until it is
-          # confirmed to be available for the repository.
+          # GitHub-hosted Intel macOS runners are not available, so keep this target disabled until it is once again available.
           # - os: macos-13
           #   name: macos-x86_64
           #   arch: x86_64
@@ -159,9 +157,7 @@ jobs:
           cd release
           tar -xzf "${{ matrix.asset }}"
 
-          # actions/upload-artifact can preserve a nested share/ directory or flatten the
-          # contents of the uploaded directory. Normalize both cases so the final archive
-          # contains the expected $prefix/share/man tree.
+          # actions/upload-artifact can preserve a nested share/ directory or flatten the contents of the uploaded directory. Normalize both cases so the final archive contains the expected $prefix/share/man tree.
           mkdir -p share
           if [[ -d ../shared-docs-tmp/share ]]; then
             cp -a ../shared-docs-tmp/share/. share/
@@ -172,9 +168,6 @@ jobs:
           # Repackage with docs included
           rm -f "${{ matrix.asset }}"
           tar -czf "${{ matrix.asset }}" .
-
-          # Clean up the extracted tree so release/ only contains the archive
-          find . -mindepth 1 -maxdepth 1 ! -name "${{ matrix.asset }}" -exec rm -rf {} +
           cd ..
 
       - name: Rename artifact for architecture
@@ -213,9 +206,115 @@ jobs:
           name: ${{ matrix.name }}-artifacts
           path: release/*
 
+  build-windows:
+    name: ${{ matrix.name }}
+    needs: build-linux
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows-x86_64
+            arch: x86_64
+            asset: dvdauthor-windows-x86_64.zip
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-autotools
+            mingw-w64-x86_64-gettext
+            mingw-w64-x86_64-flex
+            mingw-w64-x86_64-bison
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-libdvdread
+            mingw-w64-x86_64-libpng
+            mingw-w64-x86_64-libxml2
+            mingw-w64-x86_64-fontconfig
+            mingw-w64-x86_64-freetype
+            mingw-w64-x86_64-fribidi
+            zip
+            unzip
+
+      - name: Bootstrap and build
+        shell: msys2 {0}
+        run: |
+          set -eux
+          ./bootstrap
+          ./configure --prefix="$PWD/_install"
+          CPU_COUNT="$(nproc 2>/dev/null || echo 2)"
+          make -j"$CPU_COUNT" -C src
+          make install-strip -C src
+
+          mkdir -p release
+          cd _install
+          zip -r "../release/${{ matrix.asset }}" .
+          cd ..
+
+      - name: Download shared documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: shared-docs
+          path: shared-docs-tmp
+
+      - name: Add shared documentation to release
+        shell: msys2 {0}
+        run: |
+          set -eux
+          cd release
+          unzip -o "${{ matrix.asset }}"
+
+          mkdir -p share
+          if [[ -d ../shared-docs-tmp/share ]]; then
+            cp -a ../shared-docs-tmp/share/. share/
+          else
+            cp -a ../shared-docs-tmp/. share/
+          fi
+
+          rm -f "${{ matrix.asset }}"
+          zip -r "${{ matrix.asset }}" .
+          cd ..
+
+      - name: Smoke test installed binaries
+        shell: msys2 {0}
+        run: |
+          set -eux
+          mkdir -p _test_install
+          unzip -o "release/${{ matrix.asset }}" -d _test_install
+          test -f "_test_install/bin/dvdauthor.exe"
+          dvdauthor_help="$(_test_install/bin/dvdauthor.exe --help 2>&1 || true)"
+          printf '%s\n' "$dvdauthor_help" | grep -Eq 'DVDAuthor::dvdauthor|syntax: dvdauthor'
+          if [[ -f "_test_install/bin/dvdunauthor.exe" ]]; then
+            dvdunauthor_help="$(_test_install/bin/dvdunauthor.exe --help 2>&1 || true)"
+            printf '%s\n' "$dvdunauthor_help" | grep -Eq 'dvdunauthor|syntax:'
+          fi
+          test -d "_test_install/share/man" || { echo "Documentation missing!"; exit 1; }
+
+      - name: Create release checksums
+        shell: msys2 {0}
+        run: |
+          set -eux
+          cd release
+          sha256sum ./* > checksums.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-artifacts
+          path: release/*
+
   publish:
     name: Publish GitHub Release
-    needs: [build-linux, build-macos]
+    needs: [build-linux, build-macos, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 
@@ -233,7 +332,7 @@ jobs:
         run: |
           set -eux
           mkdir -p release-files
-          find all-artifacts -type f -name "*.tar.gz" -o -name "*.txt" | while read file; do
+          find all-artifacts -type f \( -name "*.tar.gz" -o -name "*.zip" -o -name "*.txt" \) | while read file; do
             cp "$file" release-files/
           done
 
@@ -245,26 +344,27 @@ jobs:
 
           - Linux x86_64
           - Linux arm64
-          - macOS x86_64 (disabled - inconsistently available)
+          - ~macOS x86_64~ (disabled)
           - macOS arm64
+          - Windows x86_64
 
           ## Included binaries
 
           - dvdauthor-linux-x86_64.tar.gz
           - dvdauthor-linux-arm64.tar.gz
           - dvdauthor-macos-arm64.tar.gz
+          - dvdauthor-windows-x86_64.zip
           - checksums.txt
 
           ## Install
 
-          Extract the archive that matches your platform and install it into a prefix such as `/usr/local`:
+          Extract the archive that matches your platform and install it into your preferred prefix (such as `/usr/local`) or binary path.
 
+          For example, on MacOS:
           ```bash
           tar -xzf dvdauthor-macos-arm64.tar.gz
           sudo cp -a . /usr/local/
           ```
-
-          On Linux, use the Linux archive with the matching architecture, then repeat the same pattern with your preferred install prefix.
 
           ## Verify the download
 
@@ -278,7 +378,6 @@ jobs:
 
           This release contains native builds for the supported architectures above.
           Documentation is included in all builds.
-          Choose the archive that matches your platform and verify the checksum before installing.
           EOF
 
       - name: Publish GitHub release
