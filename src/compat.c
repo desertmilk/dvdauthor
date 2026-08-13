@@ -5,7 +5,10 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <ctype.h>
-#include <fcntl.h>
+#include <fcntl.h>        /* O_NONBLOCK, O_CREAT, O_WRONLY, etc. */
+#ifndef O_NONBLOCK
+#define O_NONBLOCK 0
+#endif
 #include <errno.h>
 #include <assert.h>
 #include <locale.h>

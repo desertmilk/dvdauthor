@@ -25,7 +25,10 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
-#include <fcntl.h>
+#include <fcntl.h>        /* O_NONBLOCK, O_CREAT, O_WRONLY, etc. */
+#ifndef O_NONBLOCK
+#define O_NONBLOCK 0
+#endif
 
 #include <libxml/xmlreader.h>
 
