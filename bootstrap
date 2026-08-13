@@ -12,9 +12,26 @@
 # reports an error that config.rpath does not exist, which is why it
 # has to be explicitly copied below.
 #
+# Different distro/package-manager layouts put config.rpath in slightly
+# different locations, so we try to locate it instead of hard-coding a single path.
+#
 # Created by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 #-
-mkdir autotools m4
-cp /usr/share/gettext/config.rpath autotools/
-autoreconf -i
+mkdir -p autotools m4
+for d in \
+    /usr/share/gettext \
+    /usr/local/share/gettext \
+    /opt/homebrew/opt/gettext/share/gettext \
+    /usr/local/opt/gettext/share/gettext \
+    /opt/gettext/share/gettext; do
+    if [ -f "$d/config.rpath" ]; then
+        cp "$d/config.rpath" autotools/
+        break
+    fi
+done
+if [ ! -f autotools/config.rpath ]; then
+    echo "error: could not find config.rpath; install gettext" >&2
+    exit 1
+fi
+autoreconf -fi
 
