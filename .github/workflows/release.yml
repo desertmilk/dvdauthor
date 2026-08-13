@@ -86,6 +86,16 @@ jobs:
           set -eux
           mv -f "release/${{ matrix.asset }}" "release/dvdauthor-${{ matrix.name }}.tar.gz"
 
+      - name: Smoke test installed binaries
+        shell: bash
+        run: |
+          set -eux
+          test -x "$PWD/_install/bin/dvdauthor"
+          "$PWD/_install/bin/dvdauthor" --help >/dev/null
+          if [[ -x "$PWD/_install/bin/dvdunauthor" ]]; then
+            "$PWD/_install/bin/dvdunauthor" --help >/dev/null
+          fi
+
       - name: Create source distribution
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
@@ -93,6 +103,13 @@ jobs:
           set -eux
           make dist
           cp -f ./*.tar.gz release/
+
+      - name: Create release checksums
+        shell: bash
+        run: |
+          set -eux
+          cd release
+          sha256sum ./* > checksums.txt
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -121,11 +138,31 @@ jobs:
           - dvdauthor-linux-arm64.tar.gz
           - dvdauthor-macos-x86_64.tar.gz
           - dvdauthor-macos-arm64.tar.gz
+          - checksums.txt
+
+          ## Install
+
+          Extract the archive that matches your platform and install it into a prefix such as `/usr/local`:
+
+          ```bash
+          tar -xzf dvdauthor-macos-arm64.tar.gz
+          sudo cp -a _install/. /usr/local/
+          ```
+
+          On Linux, use the Linux archive with the matching architecture, then repeat the same pattern with your preferred install prefix.
+
+          ## Verify the download
+
+          To confirm the archive integrity:
+
+          ```bash
+          sha256sum -c checksums.txt
+          ```
 
           ## Notes
 
           This release contains native builds for the supported architectures above.
-          Choose the archive that matches your platform.
+          Choose the archive that matches your platform and check the checksum before installing.
           EOF
 
           gh release create "${GITHUB_REF_NAME}" --verify-tag --notes-file release-notes.md release/*
