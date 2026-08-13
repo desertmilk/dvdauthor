@@ -18,11 +18,21 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            name: linux
+            name: linux-x86_64
+            arch: x86_64
             asset: dvdauthor-linux-x86_64.tar.gz
-          - os: macos-latest
-            name: macos
+          - os: ubuntu-24.04-arm
+            name: linux-arm64
+            arch: arm64
+            asset: dvdauthor-linux-arm64.tar.gz
+          - os: macos-13
+            name: macos-x86_64
+            arch: x86_64
             asset: dvdauthor-macos-x86_64.tar.gz
+          - os: macos-14
+            name: macos-arm64
+            arch: arm64
+            asset: dvdauthor-macos-arm64.tar.gz
 
     steps:
       - name: Check out source
@@ -64,6 +74,13 @@ jobs:
           mkdir -p release
           tar -C "$PWD/_install" -czf "release/${{ matrix.asset }}" .
 
+      - name: Rename artifact for architecture
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -eux
+          mv -f "release/${{ matrix.asset }}" "release/dvdauthor-${{ matrix.name }}.tar.gz"
+
       - name: Create source distribution
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
@@ -85,4 +102,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eux
-          gh release create "${GITHUB_REF_NAME}" --verify-tag --generate-notes release/*
+          cat > release-notes.md <<'EOF'
+          ## Downloads
+
+          - Linux x86_64
+          - Linux arm64
+          - macOS x86_64
+          - macOS arm64
+
+          ## Included binaries
+
+          - dvdauthor-linux-x86_64.tar.gz
+          - dvdauthor-linux-arm64.tar.gz
+          - dvdauthor-macos-x86_64.tar.gz
+          - dvdauthor-macos-arm64.tar.gz
+
+          ## Notes
+
+          This release contains native builds for the supported architectures above.
+          Choose the archive that matches your platform.
+          EOF
+
+          gh release create "${GITHUB_REF_NAME}" --verify-tag --notes-file release-notes.md release/*
