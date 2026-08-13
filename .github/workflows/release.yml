@@ -87,12 +87,30 @@ jobs:
           mkdir -p release
           tar -C "$PWD/_install" -czf "release/${{ matrix.asset }}" .
 
-      - name: Rename artifact for architecture
+      - name: Upload shared docs (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-docs
+          path: _install/share
+          retention-days: 1
+
+      - name: Extract shared docs (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/download-artifact@v4
+        with:
+          name: shared-docs
+          path: shared-docs-tmp
+
+      - name: Install shared docs to release (macOS)
         if: runner.os == 'macOS'
         shell: bash
         run: |
           set -eux
-          mv -f "release/${{ matrix.asset }}" "release/dvdauthor-${{ matrix.name }}.tar.gz"
+          if [[ -d shared-docs-tmp/share ]]; then
+            cp -r shared-docs-tmp/share "$PWD/_install/"
+          fi
+
 
       - name: Smoke test installed binaries
         shell: bash
