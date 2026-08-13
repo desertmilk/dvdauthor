@@ -358,7 +358,8 @@ static void writetostream(int stream, unsigned char *buf, int len)
         queuedlen += thislen;
       } /*while*/
   } /*writetostream*/
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winfinite-recursion"
 static void process_packets
   (
     void (*readinput)(void *ptr, int len, bool required),
@@ -907,7 +908,7 @@ static void process_packets
           } /*if*/
       } /*while*/
   } /*process_packets*/
-
+#pragma GCC diagnostic pop
 int main(int argc,char **argv)
   {
     bool skiptohdr = false;
