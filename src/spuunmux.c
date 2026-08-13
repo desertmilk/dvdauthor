@@ -36,7 +36,11 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
 #include <netinet/in.h>
+#endif
 
 #include <png.h>
 #include <zlib.h>

@@ -44,7 +44,11 @@
 
 #include <math.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
 #include <netinet/in.h>
+#endif
 
 #include "subglobals.h"
 #include "subfont.h"
