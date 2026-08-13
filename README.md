@@ -23,6 +23,31 @@ make
 make install
 ```
 
+### Build with Nix
+
+Two Nix package definitions are provided:
+
+- **`nix/nixos-26.05.nix`** The canonical [nixos-26.05](https://github.com/NixOS/nixpkgs/blob/nixos-26.05/pkgs/by-name/dv/dvdauthor/package.nix) derivation from [SourceForge](https://sourceforge.net/projects/dvdauthor/files/) with patches applied from [upstream](https://github.com/ldo/dvdauthor).
+- **`nix/package.nix`** A local repository variant that builds from this source tree
+
+#### Using nix/package.nix (from local repository)
+
+To build directly from this repository:
+
+```bash
+nix build --impure --expr '(import <nixpkgs> {}).callPackage ./nix/package.nix {}'
+```
+
+The result will be symlinked as `result/` in the current directory, containing the built dvdauthor binaries.
+
+#### Installing the Nix build
+
+To install the built package into your Nix profile:
+
+```bash
+nix profile install --impure --expr '(import <nixpkgs> {}).callPackage ./nix/package.nix {}'
+```
+
 ### Basic workflow
 
 1. Delete a previously authored DVD:
