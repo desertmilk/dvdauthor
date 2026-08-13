@@ -265,8 +265,10 @@ jobs:
           WANT_AUTOCONF=2.72 WANT_AUTOMAKE=1.16 autoreconf -fiv
           ./configure --prefix="$PWD/_install"
           CPU_COUNT="$(nproc 2>/dev/null || echo 2)"
-          make -j"$CPU_COUNT"
-          make install-strip
+          # Windows: skip doc build (SGML DocBook toolchain unavailable via MSYS2)
+          # Documentation will be added from Linux build below
+          make -j"$CPU_COUNT" -C src
+          make install-strip -C src
           # Bundle MinGW runtime DLLs required by the installed executables.
           mkdir -p _install/bin
           for dll in \
