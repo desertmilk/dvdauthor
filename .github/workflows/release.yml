@@ -155,13 +155,22 @@ jobs:
         shell: bash
         run: |
           set -eux
-          # Extract the tarball to add docs
+          # Extract the tarball to add docs while preserving the final install layout.
           cd release
           tar -xzf "${{ matrix.asset }}"
-          # Copy docs from Linux build
-          cp -r ../shared-docs-tmp/. .
+
+          # actions/upload-artifact can preserve a nested share/ directory or flatten the
+          # contents of the uploaded directory. Normalize both cases so the final archive
+          # contains the expected $prefix/share/man tree.
+          mkdir -p share
+          if [[ -d ../shared-docs-tmp/share ]]; then
+            cp -a ../shared-docs-tmp/share/. share/
+          else
+            cp -a ../shared-docs-tmp/. share/
+          fi
+
           # Repackage with docs included
-          rm "${{ matrix.asset }}"
+          rm -f "${{ matrix.asset }}"
           tar -czf "${{ matrix.asset }}" .
           cd ..
 
