@@ -33,7 +33,14 @@
 // this is needed for FreeBSD and Windows
 #include <sys/time.h>
 #ifndef FD_SET
-#include <sys/select.h>   /* fd_set, FD_SET, FD_CLR, FD_ZERO, FD_ISSET, select() */
+
+/* fd_set, FD_SET, FD_CLR, FD_ZERO, FD_ISSET, select() */
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <sys/select.h>
+#endif
+
 #endif
 
 #include <fcntl.h>        /* O_NONBLOCK, O_CREAT, O_WRONLY, etc. */
