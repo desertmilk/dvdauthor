@@ -231,6 +231,7 @@ jobs:
           install: >-
             base-devel
             autoconf
+            autoconf2.72
             automake
             libtool
             gettext
@@ -252,10 +253,19 @@ jobs:
         run: |
           set -eux
           ./bootstrap
+          WANT_AUTOCONF=2.72 WANT_AUTOMAKE=1.16 autoreconf -fiv
           ./configure --prefix="$PWD/_install"
           CPU_COUNT="$(nproc 2>/dev/null || echo 2)"
-          make -j"$CPU_COUNT" -C src
-          make install-strip -C src
+          make -j"$CPU_COUNT"
+          make install-strip
+          # Bundle MinGW runtime DLLs required by the installed executables.
+          mkdir -p _install/bin
+          for dll in \
+            /mingw64/bin/libgcc_s_seh-1.dll \
+            /mingw64/bin/libstdc++-6.dll \
+            /mingw64/bin/libwinpthread-1.dll; do
+            cp "$dll" _install/bin/
+          done
 
           mkdir -p release
           cd _install
@@ -293,13 +303,17 @@ jobs:
           mkdir -p _test_install
           unzip -o "release/${{ matrix.asset }}" -d _test_install
           test -f "_test_install/bin/dvdauthor.exe"
+          export PATH="/usr/bin"
           dvdauthor_help="$(_test_install/bin/dvdauthor.exe --help 2>&1 || true)"
           printf '%s\n' "$dvdauthor_help" | grep -Eq 'DVDAuthor::dvdauthor|syntax: dvdauthor'
           if [[ -f "_test_install/bin/dvdunauthor.exe" ]]; then
             dvdunauthor_help="$(_test_install/bin/dvdunauthor.exe --help 2>&1 || true)"
             printf '%s\n' "$dvdunauthor_help" | grep -Eq 'dvdunauthor|syntax:'
           fi
-          test -d "_test_install/share/man" || { echo "Documentation missing!"; exit 1; }
+          test -d "_test_install/share/man" || {
+            echo "Documentation missing!"
+            exit 1
+          }
 
       - name: Create release checksums
         shell: msys2 {0}
