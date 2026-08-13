@@ -48,27 +48,27 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential autoconf automake libtool pkg-config gettext m4 flex bison \
-            docbook-utils \
-            libdvdread-dev libpng-dev libxml2-dev libfontconfig1-dev \
-            libfreetype6-dev libfribidi-dev
+          sudo apt-get install -y --no-install-recommends build-essential autoconf automake libtool pkg-config gettext m4 flex bison docbook-utils libdvdread-dev libpng-dev libxml2-dev libfontconfig1-dev libfreetype6-dev libfribidi-dev
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         shell: bash
         run: |
           brew update
-          brew install autoconf automake libtool pkg-config gettext m4 flex bison \
-            docbook-xsl \
-            libdvdread libpng libxml2 fontconfig freetype fribidi
+          brew install autoconf automake libtool pkg-config gettext m4 flex bison docbook-xsl libdvdread libpng libxml2 fontconfig freetype fribidi
 
       - name: Bootstrap and build
         shell: bash
         run: |
           set -eux
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            export PATH="$(brew --prefix)/opt/bison/bin:$(brew --prefix)/opt/flex/bin:$PATH"
+            HOMEBREW_PREFIX="$(brew --prefix)"
+            export PATH="$HOMEBREW_PREFIX/opt/bison/bin:$HOMEBREW_PREFIX/opt/flex/bin:$PATH"
+            export CPPFLAGS="-I$HOMEBREW_PREFIX/include -I$HOMEBREW_PREFIX/opt/libxml2/include -I$HOMEBREW_PREFIX/opt/libdvdread/include -I$HOMEBREW_PREFIX/opt/libpng/include -I$HOMEBREW_PREFIX/opt/fontconfig/include -I$HOMEBREW_PREFIX/opt/freetype/include -I$HOMEBREW_PREFIX/opt/fribidi/include ${CPPFLAGS:-}"
+            export LDFLAGS="-L$HOMEBREW_PREFIX/lib -L$HOMEBREW_PREFIX/opt/libxml2/lib -L$HOMEBREW_PREFIX/opt/libdvdread/lib -L$HOMEBREW_PREFIX/opt/libpng/lib -L$HOMEBREW_PREFIX/opt/fontconfig/lib -L$HOMEBREW_PREFIX/opt/freetype/lib -L$HOMEBREW_PREFIX/opt/fribidi/lib ${LDFLAGS:-}"
+            export PKG_CONFIG_PATH="$HOMEBREW_PREFIX/lib/pkgconfig:$HOMEBREW_PREFIX/opt/libxml2/lib/pkgconfig:$HOMEBREW_PREFIX/opt/libdvdread/lib/pkgconfig:$HOMEBREW_PREFIX/opt/libpng/lib/pkgconfig:$HOMEBREW_PREFIX/opt/fontconfig/lib/pkgconfig:$HOMEBREW_PREFIX/opt/freetype/lib/pkgconfig:$HOMEBREW_PREFIX/opt/fribidi/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+            export CPATH="$HOMEBREW_PREFIX/include:${CPATH:-}"
+            export LIBRARY_PATH="$HOMEBREW_PREFIX/lib:${LIBRARY_PATH:-}"
           fi
           ./bootstrap
           ./configure --prefix="$PWD/_install"
