@@ -23,6 +23,33 @@ make
 make install
 ```
 
+### Build on Windows
+
+You can build dvdauthor on Windows using MSYS2, which provides a Unix-like environment with MinGW toolchain:
+
+1. Install [MSYS2](https://www.msys2.org/) if you haven't already
+2. Open MSYS2 MINGW64 terminal
+3. Install build dependencies:
+
+```bash
+pacman -S base-devel autoconf autoconf2.72 automake libtool gettext gettext-devel \
+  mingw-w64-x86_64-toolchain mingw-w64-x86_64-gettext mingw-w64-x86_64-pkgconf \
+  mingw-w64-x86_64-libdvdread mingw-w64-x86_64-libpng mingw-w64-x86_64-libxml2 \
+  mingw-w64-x86_64-fontconfig mingw-w64-x86_64-freetype mingw-w64-x86_64-fribidi
+```
+
+4. Build dvdauthor:
+
+```bash
+./bootstrap
+WANT_AUTOCONF=2.72 WANT_AUTOMAKE=1.16 autoreconf -fiv
+./configure --prefix=/mingw64/local
+make
+make install
+```
+
+Alternatively, you can download pre-built Windows binaries from the [releases page](https://github.com/prinsbert/dvdauthor/releases).
+
 ### Build with Nix
 
 Two Nix package definitions are provided:
@@ -82,6 +109,8 @@ nix profile install --impure --expr '(import <nixpkgs> {}).callPackage ./nix/pac
 
 After that, you have a DVD-Video directory structure on disk that should work. You can then write it to a DVD, mini-DVD (CD), or play it directly from the HDD. To generate the UDF image used for burning to DVD, use `mkisofs` with the `-dvd-video` option.
 
+**Note for Windows users:** On Windows, run commands with the `.exe` extension (e.g., `dvdauthor.exe` instead of `dvdauthor`), or ensure the installation directory is added to your system `Path` environment variable to run commands without the extension.
+
 ## How to Use
 
 There are 3 steps to building the DVD directory structure on your HDD.
@@ -130,6 +159,7 @@ dvdauthor -T [-o dir]
 
 ## Example
 
+**Linux/macOS:**
 ```bash
 ./bootstrap
 ./configure --prefix=/usr/local
@@ -138,8 +168,20 @@ sudo make install
 
 # Create a DVD structure from an MPEG-2 source
 # (example assumes a valid DVD-Video MPEG-2 file exists)
-dvdauthor -o mydvd -o dvd -a 0:en /path/to/input.mpg
+dvdauthor -o mydvd -a 0:en /path/to/input.mpg
 dvdauthor -T -o mydvd
+```
+
+**Windows (using pre-built binary):**
+1. Download `dvdauthor-windows-x86_64.zip` from [releases](https://github.com/prinsbert/dvdauthor/releases)
+2. Extract the archive to your desired location (e.g., `C:\Program Files\dvdauthor`)
+3. Add the `bin` directory to your system `Path` (or use full path when running commands)
+4. Use commands as shown above, with `.exe` suffix:
+
+```bash
+# Create a DVD structure
+dvdauthor.exe -o mydvd -a 0:en C:\path\to\input.mpg
+dvdauthor.exe -T -o mydvd
 ```
 
 > The exact audio/video options depend on your MPEG stream and desired DVD settings. See `dvdauthor -h` for the full list.
