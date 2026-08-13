@@ -230,6 +230,9 @@ jobs:
           update: true
           install: >-
             base-devel
+            autoconf
+            automake
+            libtool
             gettext
             gettext-devel
             mingw-w64-x86_64-toolchain
