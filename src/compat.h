@@ -71,6 +71,8 @@ typedef bool _Bool;
 # define mkdir(path, mode) _mkdir(path)
 # undef rmdir
 # define rmdir(path) _rmdir(path)
+# undef fsync
+# define fsync(fd) _commit(fd)
 #endif
 
 #ifdef HAVE_ICONV
