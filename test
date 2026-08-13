@@ -1,0 +1,5 @@
+#!/bin/bash
+# Quick test runner
+
+cd "$(dirname "${BASH_SOURCE[0]}")"
+./test-e2e.sh

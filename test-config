@@ -1,0 +1,81 @@
+#!/bin/bash
+# Simple build test: verifies the project can be configured and basic structure is valid
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUILD_DIR="$SCRIPT_DIR/build-simple-test"
+
+# Color output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo -e "${YELLOW}==>${NC} DVDAuthor Simple Configuration Test"
+echo ""
+
+# Check for absolutely required tools
+echo -e "${YELLOW}Checking prerequisites...${NC}"
+
+if ! command -v gcc &> /dev/null; then
+    echo -e "${RED}✗${NC} GCC not found"
+    exit 1
+fi
+echo -e "${GREEN}✓${NC} GCC found"
+
+if ! command -v make &> /dev/null; then
+    echo -e "${RED}✗${NC} make not found"
+    exit 1
+fi
+echo -e "${GREEN}✓${NC} make found"
+
+if ! command -v pkg-config &> /dev/null; then
+    echo -e "${RED}✗${NC} pkg-config not found"
+    exit 1
+fi
+echo -e "${GREEN}✓${NC} pkg-config found"
+
+echo ""
+echo -e "${YELLOW}==>${NC} Running bootstrap in source directory"
+if ! cd "$SCRIPT_DIR" && ./bootstrap > "$BUILD_DIR/bootstrap.log" 2>&1; then
+    echo -e "${RED}✗${NC} Bootstrap failed"
+    tail -20 "$BUILD_DIR/bootstrap.log"
+    exit 1
+fi
+echo -e "${GREEN}✓${NC} Bootstrap successful"
+
+echo ""
+echo -e "${YELLOW}==>${NC} Setting up build directory"
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+echo -e "${GREEN}✓${NC} Build directory: $BUILD_DIR"
+
+echo ""
+echo -e "${YELLOW}==>${NC} Running configure"
+cd "$BUILD_DIR"
+if ! "$SCRIPT_DIR/configure" --disable-dvdunauthor --prefix="$BUILD_DIR/install" > configure.log 2>&1; then
+    echo -e "${RED}✗${NC} Configure failed"
+    tail -20 configure.log
+    exit 1
+fi
+echo -e "${GREEN}✓${NC} Configure successful"
+
+echo ""
+echo -e "${YELLOW}==>${NC} Checking generated Makefiles"
+if [ -f "$BUILD_DIR/src/Makefile" ]; then
+    echo -e "${GREEN}✓${NC} Makefiles generated correctly"
+else
+    echo -e "${RED}✗${NC} Makefile generation failed"
+    exit 1
+fi
+
+echo ""
+echo -e "${GREEN}✓✓✓ Configuration test PASSED ✓✓✓${NC}"
+echo ""
+echo "Next steps:"
+echo "  1. Install missing dependencies (flex, bison, etc.) if needed"
+echo "  2. Run: cd $BUILD_DIR && make -j\$(nproc) -C src"
+echo "  3. Or run the full test: $SCRIPT_DIR/test"
+echo ""
+echo "Build artifacts preserved in: $BUILD_DIR"

@@ -1,0 +1,66 @@
+#!/bin/bash
+# dvdauthor end-to-end test quick launcher
+# This script runs the appropriate test based on your system
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "
+╔════════════════════════════════════════════════════════════════╗
+║         DVDAuthor End-to-End Test Suite                        ║
+╚════════════════════════════════════════════════════════════════╝
+"
+
+# Check what test level can run
+echo "Checking your system..."
+
+# Test for absolutely minimal requirements
+if ! command -v gcc make pkg-config > /dev/null 2>&1; then
+    echo "ERROR: Missing essential tools (gcc, make, pkg-config)"
+    echo "Please install build-essential and pkg-config first"
+    exit 1
+fi
+
+# Check for flex/bison
+HAS_FLEX=false
+HAS_BISON=false
+HAS_LIBTOOL=false
+
+command -v flex > /dev/null 2>&1 && HAS_FLEX=true
+command -v bison > /dev/null 2>&1 && HAS_BISON=true  
+command -v libtool > /dev/null 2>&1 && HAS_LIBTOOL=true
+
+if [ "$HAS_FLEX" = true ] && [ "$HAS_BISON" = true ] && [ "$HAS_LIBTOOL" = true ]; then
+    echo "✓ Full build environment available"
+    echo ""
+    echo "Choose a test:"
+    echo "  1) test              - Full end-to-end build test (comprehensive)"
+    echo "  2) test-config       - Configuration verification only (fast)"
+    echo ""
+    read -p "Enter choice (1-2) or press Ctrl+C to cancel: " choice
+    case $choice in
+        1) "$SCRIPT_DIR/test" ;;
+        2) "$SCRIPT_DIR/test-config" ;;
+        *) echo "Invalid choice"; exit 1 ;;
+    esac
+else
+    echo "⚠ Limited build environment detected"
+    echo ""
+    echo "Available tests:"
+    echo "  • test-config       - Configuration verification (RECOMMENDED)"
+    echo ""
+    echo "To run the full build test, install missing tools:"
+    echo ""
+    echo "  Ubuntu/Debian:"
+    echo "    sudo apt-get install -y flex bison libtool autoconf automake"
+    echo ""
+    echo "  macOS:"
+    echo "    brew install flex bison libtool autoconf automake"
+    echo ""
+    
+    # Run the config test anyway
+    echo "Running configuration test..."
+    echo ""
+    "$SCRIPT_DIR/test-config"
+fi
