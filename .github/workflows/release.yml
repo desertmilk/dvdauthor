@@ -25,10 +25,13 @@ jobs:
             name: linux-arm64
             arch: arm64
             asset: dvdauthor-linux-arm64.tar.gz
-          - os: macos-13
-            name: macos-x86_64
-            arch: x86_64
-            asset: dvdauthor-macos-x86_64.tar.gz
+          # GitHub-hosted Intel macOS runners are not consistently available in all
+          # org/account configurations, so keep this target disabled until it is
+          # confirmed to be available for the repository.
+          # - os: macos-13
+          #   name: macos-x86_64
+          #   arch: x86_64
+          #   asset: dvdauthor-macos-x86_64.tar.gz
           - os: macos-14
             name: macos-arm64
             arch: arm64
@@ -47,6 +50,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential autoconf automake libtool pkg-config gettext m4 flex bison \
+            docbook-utils \
             libdvdread-dev libpng-dev libxml2-dev libfontconfig1-dev \
             libfreetype6-dev libfribidi-dev
 
@@ -56,6 +60,7 @@ jobs:
         run: |
           brew update
           brew install autoconf automake libtool pkg-config gettext m4 flex bison \
+            docbook-to-man \
             libdvdread libpng libxml2 fontconfig freetype fribidi
 
       - name: Bootstrap and build
