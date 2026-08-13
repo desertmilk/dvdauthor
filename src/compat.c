@@ -9,7 +9,9 @@
 #include <errno.h>
 #include <assert.h>
 #include <locale.h>
+#if !defined(_WIN32) && !defined(__MINGW32__)
 #include <langinfo.h>
+#endif
 
 /*
     Useful string stuff
@@ -199,7 +201,11 @@ void init_locale()
   {
 #ifdef HAVE_ICONV
     setlocale(LC_ALL, "");
+#if defined(_WIN32) || defined(__MINGW32__)
+    strncpy(default_charset_buf, "UTF-8", sizeof default_charset_buf - 1);
+#else
     strncpy(default_charset_buf, nl_langinfo(CODESET), sizeof default_charset_buf - 1);
+#endif
     default_charset_buf[sizeof default_charset_buf - 1] = 0;
     default_charset = default_charset_buf;
     // fprintf(stderr, "INFO: default codeset is \"%s\"\n", default_charset); /* debug */
