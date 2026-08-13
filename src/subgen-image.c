@@ -608,7 +608,7 @@ static void fixnames(stinfo *s)
     for (i = 0; i < s->numbuttons; i++)
         if (!s->buttons[i].name)
           {
-            char n[10]; /* should be enough! */
+            char n[16]; /* should be enough! */
             sprintf(n, "%d", i + 1);
             s->buttons[i].name = strdup(n);
           } /*if; for*/

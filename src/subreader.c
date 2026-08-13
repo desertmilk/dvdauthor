@@ -1446,10 +1446,10 @@ subtitle_elt *sub_read_line_jacosub(subtitle_elt * current)
     const char *p;
     char *q;
 
-    bzero(current, sizeof(subtitle_elt));
-    bzero(line1, LINE_LEN);
-    bzero(line2, LINE_LEN);
-    bzero(directive, LINE_LEN);
+    memset(current, 0, sizeof(subtitle_elt));
+    memset(line1, 0, LINE_LEN);
+    memset(line2, 0, LINE_LEN);
+    memset(directive, 0, LINE_LEN);
     while (!current->text[0])
       {
         if (!sub_fgets(line1, LINE_LEN))
