@@ -59,23 +59,22 @@ make -j$(nproc) -C src
 make -C src install DESTDIR=/tmp/dvdauthor-install
 ```
 
-## What Gets Tested
+## What the Test Does
 
-### Configuration Verification (`test-config`)
-✓ Autotools bootstrap  
-✓ Configure script generation  
-✓ Makefile creation  
-✓ Feature detection  
+The end-to-end test performs the following steps:
 
-### Build & Binary Verification (`test`)
-✓ Full source compilation  
-✓ Binary creation:
-  - `dvdauthor` - Main DVD creator
-  - `spumux` - Subtitle/subpicture encoder
-  - `spuunmux` - Subtitle decoder
-  - `mpeg2desc` - MPEG-2 descriptor tool
-✓ Binary execution  
-✓ XML configuration parsing  
+1. **Dependency Check**: Verifies all required build tools are available
+2. **Bootstrap**: Runs autotools to generate build files
+3. **Configure**: Generates makefiles with appropriate options
+4. **Build**: Compiles the project (source directory only, skipping documentation)
+5. **Install**: Installs binaries to a temporary location
+6. **Verify Binaries**: Confirms all expected binaries were created:
+   - `dvdauthor` - Main DVD creation tool
+   - `spumux` - Subtitle/subpicture encoder
+   - `spuunmux` - Subtitle/subpicture decoder  
+   - `mpeg2desc` - MPEG-2 descriptor tool
+7. **Execute Tests**: Runs each binary to verify they execute correctly
+8. **Framework Test**: Validates XML configuration parsing framework
 
 ## Dependency Management
 
