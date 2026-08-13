@@ -263,7 +263,7 @@ jobs:
           set -eux
           ./bootstrap
 
-          
+
           WANT_AUTOCONF=2.72 WANT_AUTOMAKE=1.16 autoreconf -fiv
           ./configure --prefix="$PWD/_install" LIBS="-lws2_32"
           
@@ -272,11 +272,13 @@ jobs:
           # Documentation will be added from Linux build below
           make -j"$CPU_COUNT" -C src
           make install-strip -C src
+
           # Bundle MinGW runtime DLLs required by the installed executables.
           mkdir -p _install/bin
           for exe in _install/bin/*.exe; do
-            # Find all mingw64 DLL dependencies and copy them to the install bin folder
-            ldd "$exe" | grep "/mingw64/bin/.*\.dll" | awk '{print $3}' | while read -r dll; do
+            # Find all MSYS2 DLL dependencies and copy them to the install bin folder
+            # We use -i for case-insensitivity and $MSYSTEM_PREFIX to support MINGW64, UCRT64, etc.
+            ldd "$exe" | grep -i "${MSYSTEM_PREFIX}/bin/.*\.dll" | awk '{print $3}' | while read -r dll; do
               cp -u "$dll" _install/bin/
             done
           done
