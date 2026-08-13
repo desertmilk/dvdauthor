@@ -172,6 +172,9 @@ jobs:
           # Repackage with docs included
           rm -f "${{ matrix.asset }}"
           tar -czf "${{ matrix.asset }}" .
+
+          # Clean up the extracted tree so release/ only contains the archive
+          find . -mindepth 1 -maxdepth 1 ! -name "${{ matrix.asset }}" -exec rm -rf {} +
           cd ..
 
       - name: Rename artifact for architecture
@@ -202,7 +205,7 @@ jobs:
         run: |
           set -eux
           cd release
-          shasum -a 256 ./* > checksums.txt
+          shasum -a 256 dvdauthor-${{ matrix.name }}.tar.gz > checksums.txt
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
