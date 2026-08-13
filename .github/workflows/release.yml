@@ -63,9 +63,11 @@ jobs:
         run: |
           set -eux
           test -x "$PWD/_install/bin/dvdauthor"
-          "$PWD/_install/bin/dvdauthor" --help >/dev/null
+          dvdauthor_help="$($PWD/_install/bin/dvdauthor --help 2>&1 || true)"
+          printf '%s\n' "$dvdauthor_help" | grep -Eq 'DVDAuthor::dvdauthor|syntax: dvdauthor'
           if [[ -x "$PWD/_install/bin/dvdunauthor" ]]; then
-            "$PWD/_install/bin/dvdunauthor" --help >/dev/null
+            dvdunauthor_help="$($PWD/_install/bin/dvdunauthor --help 2>&1 || true)"
+            printf '%s\n' "$dvdunauthor_help" | grep -Eq 'dvdunauthor|syntax:'
           fi
 
       - name: Create source distribution
@@ -177,9 +179,11 @@ jobs:
           mkdir -p _test_install
           tar -C _test_install -xzf "release/dvdauthor-${{ matrix.name }}.tar.gz"
           test -x "_test_install/bin/dvdauthor"
-          "_test_install/bin/dvdauthor" --help >/dev/null
+          dvdauthor_help="$(_test_install/bin/dvdauthor --help 2>&1 || true)"
+          printf '%s\n' "$dvdauthor_help" | grep -Eq 'DVDAuthor::dvdauthor|syntax: dvdauthor'
           if [[ -x "_test_install/bin/dvdunauthor" ]]; then
-            "_test_install/bin/dvdunauthor" --help >/dev/null
+            dvdunauthor_help="$(_test_install/bin/dvdunauthor --help 2>&1 || true)"
+            printf '%s\n' "$dvdunauthor_help" | grep -Eq 'dvdunauthor|syntax:'
           fi
           # Verify docs were included
           test -d "_test_install/share/man" || { echo "Documentation missing!"; exit 1; }
