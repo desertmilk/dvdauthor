@@ -53,7 +53,7 @@ trap cleanup EXIT
 
 # Step 0: Check dependencies
 log_step "Checking for required build tools"
-REQUIRED_TOOLS=("flex" "bison" "pkg-config" "gcc" "make" "autoconf" "automake" "libtool")
+REQUIRED_TOOLS=("flex" "bison" "pkg-config" "gcc" "make" "autoconf" "automake" "libtoolize")
 MISSING_TOOLS=()
 
 for tool in "${REQUIRED_TOOLS[@]}"; do

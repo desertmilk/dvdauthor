@@ -25,13 +25,13 @@ fi
 # Check for flex/bison
 HAS_FLEX=false
 HAS_BISON=false
-HAS_LIBTOOL=false
+HAS_LIBTOOLIZE=false
 
 command -v flex > /dev/null 2>&1 && HAS_FLEX=true
 command -v bison > /dev/null 2>&1 && HAS_BISON=true  
-command -v libtool > /dev/null 2>&1 && HAS_LIBTOOL=true
+command -v libtoolize > /dev/null 2>&1 && HAS_LIBTOOLIZE=true
 
-if [ "$HAS_FLEX" = true ] && [ "$HAS_BISON" = true ] && [ "$HAS_LIBTOOL" = true ]; then
+if [ "$HAS_FLEX" = true ] && [ "$HAS_BISON" = true ] && [ "$HAS_LIBTOOLIZE" = true ]; then
     echo "✓ Full build environment available"
     echo ""
     echo "Choose a test:"
