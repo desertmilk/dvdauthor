@@ -59,6 +59,7 @@ jobs:
           tar -C "$PWD/_install" -czf "release/${{ matrix.asset }}" .
 
       - name: Upload shared documentation
+        if: matrix.name == 'linux-x86_64'
         uses: actions/upload-artifact@v4
         with:
           name: shared-docs

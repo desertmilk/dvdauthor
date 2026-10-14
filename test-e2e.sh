@@ -83,14 +83,16 @@ log_info "Test directory created: $BUILD_DIR"
 
 # Step 2: Build
 log_step "Building dvdauthor from source"
-"$SCRIPT_DIR/bootstrap" > /dev/null 2>&1 || true
+if ! (cd "$SCRIPT_DIR" && "$SCRIPT_DIR/bootstrap") > "$BUILD_DIR/bootstrap.log" 2>&1; then
+    log_error "bootstrap failed (see $BUILD_DIR/bootstrap.log)"
+fi
 
 # Configure with --disable-dvdunauthor to avoid requiring libdvdread
 if ! "$SCRIPT_DIR/configure" --prefix="$BUILD_DIR/install" --disable-dvdunauthor > "$BUILD_DIR/configure.log" 2>&1; then
     log_error "configure failed (see $BUILD_DIR/configure.log)"
 fi
 
-if ! make -j$(nproc) -C src > "$BUILD_DIR/make.log" 2>&1; then
+if ! make -j1 -C src > "$BUILD_DIR/make.log" 2>&1; then
     log_error "build failed (see $BUILD_DIR/make.log)"
 fi
 
