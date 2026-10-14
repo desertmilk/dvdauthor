@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   build-linux:
@@ -345,9 +347,131 @@ jobs:
           name: ${{ matrix.name }}-artifacts
           path: release/*
 
+  generate-docs:
+    name: Generate HTML Documentation
+    needs: build-linux
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download shared documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: shared-docs
+          path: shared-docs-tmp
+
+      - name: Install man2html
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y man2html
+
+      - name: Convert man pages to HTML
+        run: |
+          mkdir -p docs/html/man1 docs/html/man7
+          
+          # Normalize the path structure
+          if [[ -d shared-docs-tmp/share ]]; then
+            MAN_DIR="shared-docs-tmp/share/man"
+          else
+            MAN_DIR="shared-docs-tmp/man"
+          fi
+          
+          # Create index page
+          cat > docs/html/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>DVDAuthor Documentation</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+              h1 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+              h2 { color: #555; margin-top: 30px; }
+              ul { list-style-type: none; padding-left: 0; }
+              li { margin: 10px 0; }
+              a { color: #0366d6; text-decoration: none; }
+              a:hover { text-decoration: underline; }
+              .man-section { margin-bottom: 30px; }
+            </style>
+          </head>
+          <body>
+            <h1>DVDAuthor Documentation</h1>
+            <p>Man pages for DVDAuthor and related tools.</p>
+          EOF
+          
+          # Convert man1 pages
+          if [[ -d "$MAN_DIR/man1" ]]; then
+            echo "    <div class='man-section'><h2>User Commands (man1)</h2><ul>" >> docs/html/index.html
+            for manpage in "$MAN_DIR/man1"/*.1; do
+              if [[ -f "$manpage" ]]; then
+                basename=$(basename "$manpage" .1)
+                output="docs/html/man1/${basename}.1.html"
+                man2html "$manpage" > "$output"
+                # Fix the header/footer that man2html adds
+                sed -i '1,/^<HR>$/d; /^<HR>$/,$d' "$output"
+                echo "      <li><a href='man1/${basename}.1.html'>${basename}(1)</a></li>" >> docs/html/index.html
+              fi
+            done
+            echo "    </ul></div>" >> docs/html/index.html
+          fi
+          
+          # Convert man7 pages
+          if [[ -d "$MAN_DIR/man7" ]]; then
+            echo "    <div class='man-section'><h2>Miscellaneous (man7)</h2><ul>" >> docs/html/index.html
+            for manpage in "$MAN_DIR/man7"/*.7; do
+              if [[ -f "$manpage" ]]; then
+                basename=$(basename "$manpage" .7)
+                output="docs/html/man7/${basename}.7.html"
+                man2html "$manpage" > "$output"
+                # Fix the header/footer that man2html adds
+                sed -i '1,/^<HR>$/d; /^<HR>$/,$d' "$output"
+                echo "      <li><a href='man7/${basename}.7.html'>${basename}(7)</a></li>" >> docs/html/index.html
+              fi
+            done
+            echo "    </ul></div>" >> docs/html/index.html
+          fi
+          
+          # Close the HTML
+          cat >> docs/html/index.html << 'EOF'
+          </body>
+          </html>
+          EOF
+
+      - name: Upload documentation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-docs
+          path: docs/html
+          retention-days: 1
+  deploy-docs:
+    name: Deploy to GitHub Pages
+    needs: generate-docs
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download HTML documentation
+        uses: actions/download-artifact@v4
+        with:
+          name: html-docs
+          path: docs-html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-html
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   publish:
     name: Publish GitHub Release
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux, build-macos, build-windows, generate-docs]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 
@@ -390,6 +514,10 @@ jobs:
           | **Windows** | x86_64 | [dvdauthor-windows-x86_64.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/dvdauthor-windows-x86_64.zip) |
 
           **Checksums:** [checksums.txt](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/checksums.txt)
+          
+          ## 📚 Documentation
+          
+          HTML documentation is available at: **https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/**
           
           *(Note: macOS x86_64 builds are currently disabled).*
 
